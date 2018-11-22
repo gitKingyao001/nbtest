@@ -1,0 +1,35 @@
+# .gitignore
+*.py[cod]
+*/*.py[cod]
+.cache
+.pytest_cache
+*__*/
+.*/
+
+# testing output
+*.xml
+*.log
+*.temp
+*.*tmp
+cover
+.coverage
+htmlcov
+__snapshots
+mycustompath
+
+# packaging
+MANIFEST
+dist
+build
+*.egg-info
+
+# mac
+.DS_Store
+
+# IDE
+/.idea
+.vscode
+
+
+
+
