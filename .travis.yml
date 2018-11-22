@@ -1,5 +1,5 @@
 language: python
-python:   # 指定运行环境，这里会分别在 2.7 和 3.5 运行
+python:   
   - '2.7'
 before_install:
   - pip install pytest-cov
@@ -9,8 +9,8 @@ script:
   - PYTHONPATH=. py.test -v --cov=nbtest --cov-report term-missing tests
 deploy:
   provider: pypi
-  user: jayvee-yjw     # pypi 用户名
-  password: XXX  # pypi 密码
+  user: jayvee-yjw
+  password: XXX
   on:
     python: 2.7
     tags: false
