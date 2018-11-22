@@ -1,6 +1,8 @@
 language: python
 python:   # 指定运行环境，这里会分别在 2.7 和 3.5 运行
   - '2.7'
+before_install:
+  - pip install pytest-cov
 install:
   - pip install assertpy
 script:
@@ -11,5 +13,5 @@ deploy:
   password: XXX  # pypi 密码
   on:
     python: 2.7
-    tags: true
+    tags: false
     branch: master
