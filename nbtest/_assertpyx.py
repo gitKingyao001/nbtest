@@ -1036,10 +1036,10 @@ class AXBuild(object):
             return self._err('expe=%r: not isinstance(expe, list), type(expe)=%s' % (self._ax_brief_val(expe), type(expe)))
         if not isinstance(self.val, list):
             return self._err('val=%r: not isinstance(val, list), type(val)=%s' % (self._ax_brief_val(self.val), type(self.val)))
-        if len(self.val) != len(expe):
-            return self._err('len(val<{}>) != len(expe<{}>)'.format(len(self.val), len(expe)))
 
         for _i in range(len(v)):
+            if len(expe) == _i:
+                return self._err('len(val<{}>) != len(expe<{}>)'.format(len(self.val), len(expe)))
             _iv = v[_i]
             descrNew = '%s[%s]' % (self.description, _i)
             axObj = AXBuild(_iv, descrNew, self.kind, expected=self.expected, debug=self.debug, _valPath=self._valPath)
@@ -1049,7 +1049,14 @@ class AXBuild(object):
                 axObj.isSetEq(expe[_i], **kwags)
             else:
                 axObj.is_equal_to(expe[_i])
+
+        if len(self.val) != len(expe):
+            return self._err('len(val<{}>) != len(expe<{}>)'.format(len(self.val), len(expe)))
+
         return self
+
+    def isListEq(self, expe, **kwags):
+        return self.isSetEq(expe, **kwags)
 
     def isItemsEq(self, expe, F=lambda x:x[:1]=='_', T=None, moreKeys=[], notAll=False):
         """ F<falseKeys, donnot check>
