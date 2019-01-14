@@ -4,6 +4,7 @@ import types, numbers, inspect, traceback, time, chardet, re, os, json
 from datetime import datetime, timedelta
 from DictObject import DictObject
 import jsonpath_rw_ext as jpath  # pip install jsonpath_rw_ext
+import logging
 
 from .future2to3 import *
 from .assertpyx import AX, _Utils
@@ -460,3 +461,38 @@ def fn_argspecStr(fn):
         )
     ret = '{}({}\n):'.format(fn.__name__, shows_str)
     return ret
+
+
+class MyLogger(object):
+    """ 日志类: stdout+logFile 双写 """
+    TRACE = logging.DEBUG - 1
+    DEFAULT_logger = None
+
+    def __init__(self, name='nbtest', console=True, file='',
+                 consoleLv=logging.INFO, fileLv=logging.DEBUG,
+                 fmt='%(asctime)s %(levelname)s [%(name)s] %(message)s'
+                 ):
+        # 创建一个logger
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(min(consoleLv, fileLv))
+        formatter = logging.Formatter(fmt)
+
+        if not (console or file):
+            assert False, 'MyLogger: need (console or file)'
+
+        # 创建一个handler，用于写入日志文件
+        if file:
+            self.logger.FH = logging.FileHandler(file)
+            self.logger.FH.setLevel(fileLv)
+            self.logger.FH.setFormatter(formatter)
+            self.logger.addHandler(self.logger.FH)
+        if console:
+            self.logger.CH = logging.StreamHandler()
+            self.logger.CH.setLevel(consoleLv)
+            self.logger.CH.setFormatter(formatter)
+            self.logger.addHandler(self.logger.CH)
+    @classmethod
+    def logDbg(cls, *args, **kwargs):
+        if not cls.DEFAULT_logger:
+            cls.DEFAULT_logger = cls().logger
+        return cls.DEFAULT_logger.logger.debug(*args, **kwargs)
