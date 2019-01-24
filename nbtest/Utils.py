@@ -307,7 +307,7 @@ def encode_get(s):
     if s=='' or isinstance(s, unicode):
         return "unicode"
     else:
-        return chardet.detect(s).get('encoding')  # s==''时，会return None
+        return chardet.detect(s).get('encoding') or sys.getdefaultencoding()  # s==''时，会return None
 
 def encode_toCn(s):
     if (not isinstance(s, basestring)): return s
@@ -337,9 +337,6 @@ def encode_to(s, typeNew='utf-8'):
         raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, typeNew, eObj))
     return ret
 
-def stred_brief(val, max=500):
-    return _Utils.stred_brief(val, max=max)
-
 def encode_toU(s):
     if not isinstance(s, basestring):
         return s
@@ -353,6 +350,9 @@ def encode_toU(s):
             print(str(eObj))
             raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, codeType, eObj))
         return ret
+
+def stred_brief(val, max=500):
+    return _Utils.stred_brief(val, max=max)
 
 def log(msg, tm=None, **kw):
     tm = tm if tm else tm_nowStr('%Y%m%d-%H%M%S')
