@@ -1,10 +1,10 @@
 # encoding=utf-8
 
 import types, numbers, inspect, traceback, time, chardet, re, os, json
+import subprocess
 from datetime import datetime, timedelta
 from DictObject import DictObject
 import jsonpath_rw_ext as jpath  # pip install jsonpath_rw_ext
-import logging
 
 from .future2to3 import *
 from .assertpyx import AX, _Utils
@@ -22,9 +22,28 @@ def SingletonCls(cls):
 def SingletonClsGet(clsName):
     return _SingletonCls_Stores[clsName]
 
+class JsonLike(object):
+    def toJson(self, __PathPre__='', **kwargs):
+        jsoned = DictObject()
+        for i in ObjGet.attrs(self, regMatch='^[a-zA-Z]', limit_callable=False):
+            ipath = __PathPre__ + i
+            v = getattr(self, i)
+            isJsonItem(v, raiseName=self.__class__.__name__ + '::' + ipath)
+            jsoned[i] = v if not isinstance(v, JsonLike) else v.toJson(__PathPre__=ipath+'.')
+        return jsoned
 
-def isJsonItem(o):
-    return isinstance(o, (types.NoneType, bool, numbers.Real, basestring, list, dict))
+def isJsonItem(o, raiseName=''):
+    if isinstance(o, str):
+        o_codetype = encode_get(o)
+        if o_codetype not in ['utf-8', 'unicode', 'ascii']:
+            raise Exception("need encode_get(o={}) in ['utf-8', 'unicode', 'ascii'], but isa {}, o={!r}"
+                            .format(raiseName, o_codetype, o))
+    canJsonTypes = (types.NoneType, bool, numbers.Real, basestring, list, dict, JsonLike)
+    chk = isinstance(o, canJsonTypes)
+    if not chk and raiseName:
+        raise Exception('need isinstance({}, {}), but isa {}'.format(raiseName, canJsonTypes, type(o)))
+
+    return chk
 
 
 class TYPE(object):
@@ -117,15 +136,19 @@ class AttrIf(object):     # 属性判断
 
 class ObjGet(object):  # [实例* 类cls* 所有all*] * [变量vars 方法methods 属性attrs]
     @staticmethod
-    def attrs(obj, regMatch='.', is_t=False):
+    def attrs(obj, regMatch='.', is_t=False, limit_callable=None):
         ls = dir(obj)
         attrs = []
         if regMatch == '.' and is_t:
             regMatch = r'^[A-Z]\w+$'
         for i in ls:
-            if not re.match(r'^__\w+__$', i):
-                if re.match(regMatch, i):
-                    attrs.append(i)
+            if re.match(r'^__\w+__$', i):
+                continue
+            if not re.match(regMatch, i):
+                continue
+            if limit_callable!=None and callable(getattr(obj, i))!=limit_callable:
+                continue
+            attrs.append(i)
         return attrs
 
     @staticmethod
@@ -180,15 +203,6 @@ def isSubCls(itype, subClsOf=types.TypeType):
 def isFn(o):
     return hasattr(o, '__call__')
 
-def format(text, *args, **kwargs):
-    """
-
-
-    :param text:
-    :param args:
-    :param kwargs:
-    :return:
-    """
 
 
 def jsonItem(o, msg):
@@ -302,12 +316,14 @@ def dc_val2key(dc, val):
         return val
 
 def encode_get(s):
+    if not s:
+        return "unicode"
     if not isinstance(s, basestring):
         return None
-    if s=='' or isinstance(s, unicode):
+    if isinstance(s, unicode):
         return "unicode"
     else:
-        return chardet.detect(s).get('encoding') or sys.getdefaultencoding()  # s==''时，会return None
+        return chardet.detect(s).get('encoding', None)  # s==''时，会return None
 
 def encode_toCn(s):
     if (not isinstance(s, basestring)): return s
@@ -326,8 +342,9 @@ def encode_to(s, typeNew='utf-8'):
     if not isinstance(s, basestring):
         return s
     typeOld = encode_get(s)
-    if typeOld == typeNew:
+    if not typeOld or typeOld==typeNew:
         return s
+
     if typeOld != 'unicode':
         s = encode_toU(s)
 
@@ -341,15 +358,17 @@ def encode_toU(s):
     if not isinstance(s, basestring):
         return s
     codeType = encode_get(s)
+    if not codeType:
+        return codeType
     if (codeType in ['unicode']):
         return s
-    else:
-        try:
-            ret = s.decode(codeType)
-        except Exception as eObj:
-            print(str(eObj))
-            raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, codeType, eObj))
-        return ret
+
+    try:
+        ret = s.decode(codeType)
+    except Exception as eObj:
+        print(str(eObj))
+        raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, codeType, eObj))
+    return ret
 
 def stred_brief(val, max=500):
     return _Utils.stred_brief(val, max=max)
@@ -406,8 +425,47 @@ def Try_withTimes(_TryTimes,_TryGap,_msgPre,_reFunc,_reFKw,_func, *fargs, **fKw)
         assert False, "----> %s() Fail. ierr={%s}" % (_msgPre, err_detail(ierrObj))
     return iret
 
-def sys_taskkill(name):
-    os.system('taskkill /f /im {}'.format(name))
+
+class SysCmd(JsonLike):
+    @property
+    def cmd(self): return self._cmd
+    @property
+    def code(self): return self._code
+    @property
+    def output(self): return self._output
+
+    def __init__(self, cmd=None, encodeTo='utf-8', **kwargs):
+        self._cmd = cmd
+        self._code = -1
+        self._output = ''
+        if self._cmd:
+            try:
+                self._code = 0
+                self._output = subprocess.check_output(self._cmd, shell=True)
+            except subprocess.CalledProcessError as errObj:
+                self._code = errObj.returncode
+                self._output = ''
+        if encodeTo:
+            self._output = encode_to(self._output, encodeTo)
+
+def sys_taskkill(name, killall=True):
+    if not name:
+        return dict(cmd=name, code=-1, output='')
+    if os.name == 'nt':
+        cmd = 'taskkill /f /im {}'.format(name)
+    else:
+        kill = 'killall' if killall else 'kill -9'
+        cmd = '{} {}'.format(killname)
+    return SysCmd(cmd)
+
+def sys_tasklistFind(findstr):
+    if not findstr:
+        return dict(cmd=findstr, code=-1, output='')
+    if os.name == 'nt':
+        cmd = 'tasklist| findstr {}'.format(findstr)
+    else:
+        cmd = "ps -ef| grep {}| awk '{print $8,$2}'| grep {}".format(findstr, findstr)
+    return SysCmd(cmd=cmd)
 
 def fn_argspecStr(fn):
     """ e.g.
@@ -461,38 +519,3 @@ def fn_argspecStr(fn):
         )
     ret = '{}({}\n):'.format(fn.__name__, shows_str)
     return ret
-
-
-class MyLogger(object):
-    """ 日志类: stdout+logFile 双写 """
-    TRACE = logging.DEBUG - 1
-    DEFAULT_logger = None
-
-    def __init__(self, name='nbtest', console=True, file='',
-                 consoleLv=logging.INFO, fileLv=logging.DEBUG,
-                 fmt='%(asctime)s %(levelname)s [%(name)s] %(message)s'
-                 ):
-        # 创建一个logger
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(min(consoleLv, fileLv))
-        formatter = logging.Formatter(fmt)
-
-        if not (console or file):
-            assert False, 'MyLogger: need (console or file)'
-
-        # 创建一个handler，用于写入日志文件
-        if file:
-            self.logger.FH = logging.FileHandler(file)
-            self.logger.FH.setLevel(fileLv)
-            self.logger.FH.setFormatter(formatter)
-            self.logger.addHandler(self.logger.FH)
-        if console:
-            self.logger.CH = logging.StreamHandler()
-            self.logger.CH.setLevel(consoleLv)
-            self.logger.CH.setFormatter(formatter)
-            self.logger.addHandler(self.logger.CH)
-    @classmethod
-    def logDbg(cls, *args, **kwargs):
-        if not cls.DEFAULT_logger:
-            cls.DEFAULT_logger = cls().logger
-        return cls.DEFAULT_logger.logger.debug(*args, **kwargs)
