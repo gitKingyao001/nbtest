@@ -211,7 +211,7 @@ def jsonItem(o, msg):
     return o
 
 def json_t2o(t, **kw):
-    assert isinstance(t, six.text_type), "isinstance(t, six.text_type), but t={!r}".format(t)
+    assert isinstance(t, basestring), "isinstance(t, basestring), but type(t)={}".format(type(t))
     return json.loads(t, **kw)
 
 def json_o2t(o, ensure_ascii=False, indent=None, **kw):
