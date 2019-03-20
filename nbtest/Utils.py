@@ -257,10 +257,41 @@ def KwNameGet(kw, notSpilit=True):
     value = Symbol.Get(kw, default=Undef)
     return value if notSpilit else value.split('-')
 
-def err_detail(errObj, ifDetail=True):
+def err_detail(errObj, ifDetail=True, filters=[]):
     assert isinstance(errObj, BaseException), \
         "assert isinstance(errObj, BaseException), but isa {}".format(type(errObj))
-    return '%s\n%s' % (errObj, traceback.format_exc()) if ifDetail else '{}'.format(errObj)
+    if not ifDetail:
+        return '{}'.format(errObj)
+    errDetailOld = '%s\n%s' % (errObj, traceback.format_exc())
+    errDetailSplits = errDetailOld.split('Traceback (most recent call last):')
+    errFlagEnd = errDetailSplits[-1].strip()
+    errFlagsNew = []
+    for errDetailSplit in errDetailSplits[:-1]:
+        findAt = errDetailSplit.find(errFlagEnd)
+        if findAt == -1:
+            errFlagsNew.append(errDetailSplit)
+        else:
+            errFlagNew = errDetailSplit[:findAt] + errDetailSplit[findAt+len(errFlagEnd):]
+            errFlagNew = errFlagNew.strip()
+            if errFlagNew:
+                errFlagsNew.append(errFlagNew)
+            else:
+                errFlagsNew.append("\n".join(errDetailSplit.split("\n")[:2]))
+    errFlagsNew.append(errFlagEnd)
+    errDetailNew = 'Traceback (most recent call last):'.join(errFlagsNew)
+
+    errLines = errDetailNew.split('\n')
+    errLines_tmp = [i for i in errLines]
+    for filter in filters:
+        finder, num = filter
+        for _x in range(10):
+            finderIds = [i for i in range(len(errLines_tmp)) if errLines_tmp[i].find(finder) != -1]
+            if finderIds:
+                finderId = finderIds[0]
+                errLines_tmp = errLines_tmp[:finderId] +errLines_tmp[finderId+num:]
+            else:
+                break
+    return '\n'.join(errLines_tmp).strip()
 
 def tm_str2stamp(s, fmt, isSec=True):
     """ eg. .('2018-01-09 20:31:02', '%Y-%m-%d %H:%M:%S') -> 1515501
