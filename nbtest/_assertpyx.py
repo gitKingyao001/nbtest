@@ -969,7 +969,7 @@ class AXBuild(object):
         if len(self._valPath) >= 2:
             valLast = _Utils.stred_brief(self._valPath[-2], max=500)
             msg += '\n  #_valPath[last]={!r}'.format(valLast)
-        out = '\n  [{}]:\n  {}'.format(self.description, msg)
+        out = '[{}]: {}'.format(self.description, msg)
         if self.kind == 'warn':
             print(out)
             return self
