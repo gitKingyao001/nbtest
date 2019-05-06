@@ -4,6 +4,6 @@ from __future__ import unicode_literals, print_function
 # use six.text_type insted basestring
 import six
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+# import sys
+# reload(sys)
+# sys.setdefaultencoding('utf-8')

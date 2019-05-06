@@ -1,1 +1,1 @@
-__version__ = '0.2.7' # upd AX::_err
+__version__ = '0.2.8' # delete sys.setdefaultencoding('utf-8')
