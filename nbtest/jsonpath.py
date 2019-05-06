@@ -1,4 +1,6 @@
-# coding=utf-8
+#encoding=utf-8
+from __future__ import unicode_literals, print_function, division
+from .future2to3 import *
 
 import jsonpath_rw_ext as jpath  # pip install jsonpath_rw_ext
 from .Utils import Undef

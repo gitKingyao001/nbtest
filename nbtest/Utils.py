@@ -1,11 +1,13 @@
-# encoding=utf-8
+#encoding=utf-8
+from __future__ import unicode_literals, print_function, division
+from .future2to3 import *
 
 import types, numbers, inspect, traceback, time, chardet, re, os, json
 import subprocess
 from datetime import datetime, timedelta
 from DictObject import DictObject
 
-from .future2to3 import *
+
 from .assertpyx import AX, _Utils
 
 _SingletonCls_Stores = {}

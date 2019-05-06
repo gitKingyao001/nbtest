@@ -1,1 +1,1 @@
-__version__ = '0.2.8' # delete sys.setdefaultencoding('utf-8')
+__version__ = '0.2.9' # upd future2to3

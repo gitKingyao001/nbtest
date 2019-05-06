@@ -1,9 +1,8 @@
 # encoding=utf-8
-
+from __future__ import unicode_literals, print_function, division
+from .future2to3 import *
 
 """Assertion library for python unit testing with a fluent API"""
-
-from __future__ import division, print_function
 
 
 __Author__ = 'JayveeYao@inherit_assertpy'
@@ -41,7 +40,7 @@ class _Utils(object):
     """
     @staticmethod
     def stred_brief(val, max=200):
-        str_valLast = str(val)
+        str_valLast = '{}'.format(val)
         if len(str_valLast) > max:
             if isinstance(val, dict):
                 val = 'dict<.keys()=[{}]>'.format(', '.join(val.keys()))
@@ -146,7 +145,7 @@ class AXBuild(object):
 
     def described_as(self, description):
         """Describes the assertion.  On failure, the description is included in the error message."""
-        self.description = str(description)
+        self.description = '{}'.format(description)
         return self
 
     def is_equal_to(self, other):
@@ -937,7 +936,7 @@ class AXBuild(object):
             if issubclass(type(e), self.expected):
                 # chain on with exception message as val
                 descrNew = '%s.doCatch(%s, %s)' % (self.description, self.expected.__name__, paramsFmt)
-                return AXBuild(str(e), descrNew, self.kind, _valPath=self._valPath)
+                return AXBuild('{}'.format(e), descrNew, self.kind, _valPath=self._valPath)
             else:
                 # got exception, but wrong type, so raise
                 self._err('Expected <%s> to raise <%s> when called with (%s), but raised <%s>.' % (
@@ -954,7 +953,7 @@ class AXBuild(object):
 
 ### helpers ###
     def _ax_brief_val(self, val):
-        str_valLast = str(val)
+        str_valLast = '{}'.format(val)
         max = 500
         if len(str_valLast) > max:
             if isinstance(val, dict):
