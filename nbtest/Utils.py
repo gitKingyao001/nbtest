@@ -264,7 +264,9 @@ def err_detail(errObj, ifDetail=True, filters=[]):
         "assert isinstance(errObj, BaseException), but isa {}".format(type(errObj))
     if not ifDetail:
         return '{}'.format(errObj)
-    errDetailOld = '%s\n%s' % (errObj, traceback.format_exc())
+    errStackInfo = traceback.format_exc()
+    errStackInfo2 = encode_toU(errStackInfo)
+    errDetailOld = '{}\n{}'.format(errObj, errStackInfo2)
     errDetailSplits = errDetailOld.split('Traceback (most recent call last):')
     errFlagEnd = errDetailSplits[-1].strip()
     errFlagsNew = []
@@ -382,6 +384,12 @@ def encode_toU(s):
 
 def stred_brief(val, max=500):
     return _Utils.stred_brief(val, max=max)
+
+def str_fmt(fmt='', *args, **kwargs):
+    if args:
+        return fmt.format(*[encode_toU(i) for i in args])
+    else:
+        return fmt.format(**{k: encode_toU(v) for k, v in kwargs.items()})
 
 def log(msg, tm=None, **kw):
     tm = tm if tm else tm_nowStr('%Y%m%d-%H%M%S')
