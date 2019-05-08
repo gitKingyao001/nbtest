@@ -220,8 +220,6 @@ def json_o2t(o, ensure_ascii=False, indent=None, **kw):
 
 
 
-
-
 def stackUpFind__Symbol__():
     """  exam: stackUpFind(lambda i: i[0].f_locals.get('kw', {}).get('__Symbol__')) """
     stacks = inspect.stack()
@@ -327,69 +325,10 @@ def dc_val2key(dc, val):
     else:
         return val
 
-def encode_get(s):
-    if not s:
-        return "unicode"
-    if not isinstance(s, basestring):
-        return None
-    if isinstance(s, unicode):
-        return "unicode"
-    else:
-        return chardet.detect(s).get('encoding', None)  # s==''时，会return None
 
-def encode_toCn(s):
-    if (not isinstance(s, basestring)): return s
-    if (encode_get(s) in ['unicode', 'utf-8']):
-        return s.encode('GBK')
-    else:
-        try:
-            ret = s.decode('GBK').encode('GBK')
-        except Exception as eObj:
-            print(str(eObj))
-            raise Exception("encode_toCn: {%s}.decode('GBK').encode('GBK'), error={%s}" % (s, eObj))
-        return ret
-
-
-def encode_to(s, typeNew='utf-8'):
-    if not isinstance(s, basestring):
-        return s
-    typeOld = encode_get(s)
-    if not typeOld or typeOld==typeNew:
-        return s
-
-    if typeOld != 'unicode':
-        s = encode_toU(s)
-
-    try:
-        ret = s.encode(typeNew)
-    except Exception as eObj:
-        raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, typeNew, eObj))
-    return ret
-
-def encode_toU(s):
-    if not isinstance(s, basestring):
-        return s
-    codeType = encode_get(s)
-    if not codeType:
-        return codeType
-    if (codeType in ['unicode']):
-        return s
-
-    try:
-        ret = s.decode(codeType)
-    except Exception as eObj:
-        print(str(eObj))
-        raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, codeType, eObj))
-    return ret
 
 def stred_brief(val, max=500):
     return _Utils.stred_brief(val, max=max)
-
-def str_fmt(fmt='', *args, **kwargs):
-    if args:
-        return fmt.format(*[encode_toU(i) for i in args])
-    else:
-        return fmt.format(**{k: encode_toU(v) for k, v in kwargs.items()})
 
 def log(msg, tm=None, **kw):
     tm = tm if tm else tm_nowStr('%Y%m%d-%H%M%S')
@@ -473,7 +412,7 @@ def sys_taskkill(name, killall=True):
         cmd = 'taskkill /f /im {}'.format(name)
     else:
         kill = 'killall' if killall else 'kill -9'
-        cmd = '{} {}'.format(killname)
+        cmd = '{} {}'.format(kill, name)
     return SysCmd(cmd)
 
 def sys_tasklistFind(findstr):

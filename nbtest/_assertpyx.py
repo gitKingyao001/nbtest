@@ -40,7 +40,7 @@ class _Utils(object):
     """
     @staticmethod
     def stred_brief(val, max=200):
-        str_valLast = '{}'.format(val)
+        str_valLast = str_fmt(val)
         if len(str_valLast) > max:
             if isinstance(val, dict):
                 val = 'dict<.keys()=[{}]>'.format(', '.join(val.keys()))
@@ -82,7 +82,7 @@ class AXConfig(object):
                 return True
         return False
 
-def AX(val, description, debug=None, Utils=None, kw={}):
+def AX(val, description='', debug=None, Utils=None, kw={}):
     """Factory method for the assertion builder with value to be tested, optional description, and
        just warn on assertion failures instead of raisings exceptions."""
     if debug and Utils:
@@ -123,10 +123,12 @@ def AX(val, description, debug=None, Utils=None, kw={}):
 
 
 class AXError(AssertionError):
-    pass
+    def __init__(self, msg):
+        AssertionError.__init__(self, encode_to(str_fmt(msg)))
 
 class AXOtherError(TypeError):
-    pass
+    def __init__(self, msg):
+        TypeError.__init__(self, encode_to(str_fmt(msg)))
 
 class AXBuild(object):
     """Assertion builder."""
@@ -145,19 +147,21 @@ class AXBuild(object):
 
     def described_as(self, description):
         """Describes the assertion.  On failure, the description is included in the error message."""
-        self.description = '{}'.format(description)
+        self.description = str_fmt(description)
         return self
 
     def is_equal_to(self, other):
         """Asserts that val is equal to other."""
         if self.val != other:
-            self._err('Expected (%s) to be equal to (%s), but was not.' % (self._ax_brief_val(self.val), self._ax_brief_val(other)))
+            val_brief, other_brief = self._ax_brief_val(self.val), self._ax_brief_val(other)
+            self._err('Expected <%s> to be equal to <%s>, but was not.' % (val_brief, other_brief))
         return self
 
     def is_not_equal_to(self, other):
         """Asserts that val is not equal to other."""
         if self.val == other:
-            self._err('Expected (%s) to be not equal to (%s), but was.' % (self._ax_brief_val(self.val), self._ax_brief_val(other)))
+            val_brief, other_brief = self._ax_brief_val(self.val), self._ax_brief_val(other)
+            self._err('Expected <%s> to be not equal to <%s>, but was.' % (val_brief, other_brief))
         return self
 
     def is_same_as(self, other):
@@ -175,7 +179,7 @@ class AXBuild(object):
     def is_true(self):
         """Asserts that val is true."""
         if not self.val:
-            self._err('%s: Expected is <True>, but was not.' % self._ax_brief_val(self.val))
+            self._err('%s: Expected <True>, but was not.' % self._ax_brief_val(self.val))
         return self
 
     def is_false(self):
@@ -936,7 +940,7 @@ class AXBuild(object):
             if issubclass(type(e), self.expected):
                 # chain on with exception message as val
                 descrNew = '%s.doCatch(%s, %s)' % (self.description, self.expected.__name__, paramsFmt)
-                return AXBuild('{}'.format(e), descrNew, self.kind, _valPath=self._valPath)
+                return AXBuild(str_fmt(e), descrNew, self.kind, _valPath=self._valPath)
             else:
                 # got exception, but wrong type, so raise
                 self._err('Expected <%s> to raise <%s> when called with (%s), but raised <%s>.' % (
@@ -953,16 +957,19 @@ class AXBuild(object):
 
 ### helpers ###
     def _ax_brief_val(self, val):
-        str_valLast = '{}'.format(val)
+        str_valLast = str_fmt(val)
         max = 500
         if len(str_valLast) > max:
             if isinstance(val, dict):
-                val = 'dict<.keys(%r)>' % val.keys()
+                valNew = 'dict<.keys(%r)>' % val.keys()
             elif isinstance(val, (list, tuple, set)):
-                val = 'list<.len(%s)>' % len(val)
+                valNew = 'list<.len(%s)>' % len(val)
             else:
-                val = repr('%s<%s...>' % (type(val), str_valLast[:max]))
-        return val
+                valNew = repr('%s<%s...>' % (type(val), str_valLast[:max]))
+            ret = str_fmt(valNew)
+        else:
+            ret = str_valLast
+        return ret
     def _err(self, msg):
         """Helper to raise an AXError, and optionally prepend custom description."""
         if len(self._valPath) >= 2:

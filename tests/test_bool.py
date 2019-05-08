@@ -1,32 +1,37 @@
-from assertpy import assert_that,fail
+#encoding=utf-8
+from __future__ import unicode_literals, print_function, division
+from nbtest.future2to3 import *
+
+from nbtest.assertpyx import AX
 
 
 def test_is_true():
-    assert_that(True).is_true()
-    assert_that(1 == 1).is_true()
-    assert_that(1).is_true()
-    assert_that('a').is_true()
-    assert_that([1]).is_true()
-    assert_that({'a':1}).is_true()
+    AX(True).is_true()
+    AX(1 == 1).is_true()
+    AX(1).is_true()
+    AX('a中文').is_true()
+    AX([1]).is_true()
+    AX(['a中文']).is_true()
+    AX({'a中文':1}).is_true()
 
 def test_is_true_failure():
     try:
-        assert_that(False).is_true()
-        fail('should have raised error')
+        AX(False).is_true()
+        assert False, 'should have raised error'
     except AssertionError as ex:
-        assert_that(str(ex)).is_equal_to('Expected <True>, but was not.')
+        AX(str(ex)).ends_with('Expected <True>, but was not.')
 
 def test_is_false():
-    assert_that(False).is_false()
-    assert_that(1 == 2).is_false()
-    assert_that(0).is_false()
-    assert_that([]).is_false()
-    assert_that({}).is_false()
-    assert_that(()).is_false()
+    AX(False).is_false()
+    AX(1 == 2).is_false()
+    AX(0).is_false()
+    AX([]).is_false()
+    AX({}).is_false()
+    AX(()).is_false()
 
 def test_is_false_failure():
     try:
-        assert_that(True).is_false()
-        fail('should have raised error')
+        AX(True).is_false()
+        assert False, 'should have raised error'
     except AssertionError as ex:
-        assert_that(str(ex)).is_equal_to('Expected <False>, but was not.')
+        AX(str(ex)).ends_with('Expected <False>, but was not.')
