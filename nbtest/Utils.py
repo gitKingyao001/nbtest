@@ -14,7 +14,7 @@ _SingletonCls_Stores = {}
 def SingletonCls(cls):
     inst = cls.__Singleton__() if hasattr(cls, '__Singleton__') else cls()
     assert cls.__name__ not in _SingletonCls_Stores.keys(),\
-        "assert <cls.__name__={!r}> not in <_SingletonCls_Stores.keys()>".format(cls.__name__)
+        str_fmt("assert <cls.__name__={!r}> not in <_SingletonCls_Stores.keys()>", cls.__name__)
     _SingletonCls_Stores[cls.__name__] = cls
     inst.__SingletonName__ = cls.__name__
     inst.__call__ = lambda: inst
@@ -37,12 +37,15 @@ def isJsonItem(o, raiseName=''):
     if isinstance(o, str):
         o_codetype = encode_get(o)
         if o_codetype not in ['utf-8', 'unicode', 'ascii']:
-            raise Exception("need encode_get(o={}) in ['utf-8', 'unicode', 'ascii'], but isa {}, o={!r}"
-                            .format(raiseName, o_codetype, o))
+            raise Exception(str_fmtB(
+                "need encode_get(o={}) in ['utf-8', 'unicode', 'ascii'], but isa {}, o={!r}", raiseName, o_codetype, o
+            ))
     canJsonTypes = (types.NoneType, bool, numbers.Real, basestring, list, dict, JsonLike)
     chk = isinstance(o, canJsonTypes)
     if not chk and raiseName:
-        raise Exception('need isinstance({}, {}), but isa {}'.format(raiseName, canJsonTypes, type(o)))
+        raise Exception(str_fmtB(
+            'need isinstance({}, {}), but isa {}', raiseName, canJsonTypes, type(o)
+        ))
 
     return chk
 
@@ -59,9 +62,11 @@ class UndefCls(object):
     def __init__(self, name='None'):
         self.__Name__ = name
     def __getattr__(self, item):
-        raise AttributeError("'{!r}' has no attribute '{}'".format(self, item))
+        raise AttributeError(str_fmtB(
+            "'{!r}' has no attribute '{}'", self, item
+        ))
     def __repr__(self):
-        return "_<UndefCls obj at {} #{}>".format(id(self), self.__Name__)
+        return str_fmt("_<UndefCls obj at {} #{}>", id(self), self.__Name__)
     def __nonzero__(self):
         return False
     def __eq__(self, other):
@@ -81,7 +86,7 @@ class Symbol(str):
     """ like js's Symbol """
     def __new__(cls, __Name__=None):
         __HelperObj__ = _SymbolHelper()
-        __SymbolStr__ = "_<_SymbolHelper obj at {} #{}>".format(id(__HelperObj__), __Name__)
+        __SymbolStr__ = str_fmt("_<_SymbolHelper obj at {} #{}>", id(__HelperObj__), __Name__)
         self = str(__SymbolStr__)
         return self
 
@@ -257,6 +262,7 @@ def KwNameGet(kw, notSpilit=True):
     value = Symbol.Get(kw, default=Undef)
     return value if notSpilit else value.split('-')
 
+
 def err_detail(errObj, ifDetail=True, filters=[]):
     assert isinstance(errObj, BaseException), \
         "assert isinstance(errObj, BaseException), but isa {}".format(type(errObj))
@@ -264,7 +270,7 @@ def err_detail(errObj, ifDetail=True, filters=[]):
         return '{}'.format(errObj)
     errStackInfo = traceback.format_exc()
     errStackInfo2 = encode_toU(errStackInfo)
-    errDetailOld = '{}\n{}'.format(errObj, errStackInfo2)
+    errDetailOld = str_fmt('{}\n{}', errObj, errStackInfo2)
     errDetailSplits = errDetailOld.split('Traceback (most recent call last):')
     errFlagEnd = errDetailSplits[-1].strip()
     errFlagsNew = []
@@ -476,3 +482,17 @@ def fn_argspecStr(fn):
         )
     ret = '{}({}\n):'.format(fn.__name__, shows_str)
     return ret
+
+def file_write(file_path, content, mode='wb', encoding='utf-8', **kwargs):
+    with open(file_path, mode=mode, encoding=encoding, **kwargs) as file_object:
+        file_object.write(content)
+
+def file_read(filePath, mode='rU', encoding='utf-8', **kwargs):
+    with open(filePath, mode=mode, encoding=encoding, **kwargs) as f:
+        f_readStr = f.read()
+    return f_readStr
+
+def file_readLines(filePath, mode='rU', encoding='utf-8', **kwargs):
+    with open(filePath, mode=mode, encoding=encoding, **kwargs) as f:
+        f_readLines = f.readlines()
+    return f_readLines

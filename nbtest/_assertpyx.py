@@ -1170,10 +1170,10 @@ class AXBuild(object):
         """ try: self.val(*args, **kw) 
             except excepted as e: return AX(e) 
         """
-        if not (inspect.isfunction(self.val) or hasattr(self.val, '__call__')):
-            raise AXOtherError('val must be function or has "__call__"')
+        if not callable(self.val):
+            raise AXOtherError('val must be callable')
         if not issubclass(excepted, BaseException):
-            raise AXOtherError('given arg must be exception')
+            raise AXOtherError('given excepted must be exception')
         self.expected = excepted
         return self.when_called_with(*args, **kw)
 
@@ -1234,6 +1234,29 @@ class AXBuild(object):
     def doGeti(self, item):
         """ try: ret = self.val[item]; return AX(ret) """
         return self.doMethod('__getitem__', item)
+
+    def doCatchErrStr(self, __Exception__=Exception):
+        __Exception__name = getattr(__Exception__, '__name__', __Exception__)
+        descrNew = str_fmt(
+            'try <{}>() except {} as errObj; ', self.description, __Exception__name
+        )
+
+        if not callable(self.val):
+            raise AXOtherError(str_fmtB('[{}]: self.val must be callable', descrNew))
+        if not issubclass(__Exception__, BaseException):
+            raise AXOtherError(str_fmtB(
+                '[{}]: need issubclass(__Exception__), BaseException), but __Exception__={}', descrNew, __Exception__
+            ))
+
+        errObj = None
+        try:
+            self.val()
+        except __Exception__ as errObj:
+            errMsg = str_fmt(errObj)
+            return AXBuild(errMsg, descrNew, self.kind, _valPath=self._valPath)
+        if errObj is None:
+            raise AXOtherError(str_fmtB('[{}]: errObj is not None', descrNew))
+
 # end class
 
 AXNone = AXBuild(None)

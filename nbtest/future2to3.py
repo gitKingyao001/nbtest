@@ -67,6 +67,7 @@ def encode_toU(s):
         raise Exception("encode_toU: {%s}.decode(%s), error={%s}" % (s, codeType, eObj))
     return ret
 
+
 def str_fmt(fmt=None, *args, **kwargs):
     if not args and not kwargs:
         return '{}'.format(fmt) if not isinstance(fmt, basestring) else encode_toU(fmt)
@@ -76,8 +77,10 @@ def str_fmt(fmt=None, *args, **kwargs):
         return fmt.format(**{k: encode_toU(v) for k, v in kwargs.items()})
 
 def str_fmtB(fmt=None, *args, **kwargs):
+    __Encoding__ = 'utf-8'
+    if kwargs.has_key('__Encoding__'):
+        __Encoding__ = kwargs.pop('__Encoding__')
     strFmt = str_fmt(fmt, *args, **kwargs)
-    __Encoding__ = kwargs.get('__Encoding__', 'utf-8')
     return encode_to(strFmt, __Encoding__=__Encoding__)
 
 def printB(fmt=None, *args, **kwargs):
