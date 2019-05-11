@@ -1,9 +1,9 @@
 #encoding=utf-8
 from __future__ import unicode_literals, print_function, division
-from future2to3 import *
+from .future2to3 import *
 
 import jsonpath_rw_ext as jpath  # pip install jsonpath_rw_ext
-from Utils import Undef
+from .Utils import Undef
 
 def jpFinds(jsDc, jsPath, onlyone=None, notNull=False, onlyoneAuto=True, dftRaise=True, dft=Undef):
     """

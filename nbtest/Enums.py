@@ -1,7 +1,7 @@
 # encoding=utf-8
 
-from nbtest.Utils import Undef, UndefCls
-from nbtest.assertpyx import AX
+from .Utils import Undef, UndefCls
+from .assertpyx import AX
 
 import re
 from DictObject import DictObject

@@ -6,8 +6,8 @@ import os, sys, json, types, re
 from DictObject import DictObject
 
 from parameterized import param
-from nbtest.assertpyx import AX, AXConfig
-from nbtest import Utils
+from .assertpyx import AX, AXConfig
+from . import Utils
 
 class KcRet(object):
     __Rets__ = DictObject({})
