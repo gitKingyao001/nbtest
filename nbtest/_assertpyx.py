@@ -1,6 +1,6 @@
 # encoding=utf-8
 from __future__ import unicode_literals, print_function, division
-from .future2to3 import *
+from future2to3 import *
 
 """Assertion library for python unit testing with a fluent API"""
 
