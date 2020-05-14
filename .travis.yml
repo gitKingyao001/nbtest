@@ -4,7 +4,7 @@ python:
 before_install:
 - pip install pytest-cov
 install:
-- pip install assertpy jsonpath_rw_ext chardet cchardet html DictObject
+- pip install assertpy jsonpath_rw_ext chardet cchardet html DictObject parameterized
 script:
 - PYTHONPATH=. py.test -v --cov=nbtest --cov-report term-missing tests
 deploy:
