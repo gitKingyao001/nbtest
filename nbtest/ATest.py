@@ -4,9 +4,10 @@ from nbtest.future2to3 import *
 
 import os, sys, json, types, re
 from DictObject import DictObject
+import html
 
-from parameterized import param
-from .assertpyx import AX, AXConfig
+from parameterized import parameterized, param
+from .assertpyx import AX, AXConfig, AXNone
 from . import Utils
 
 class KcRet(object):
@@ -85,8 +86,14 @@ def _testfunc_doc(func, num, param_):
     pre = ''
     if '--collect-only' in sys.argv:
         pre = _testfunc_name(func, num, param_)
-    param_values = param_.kwargs.get('__NAME__') or param_.kwargs.values()
-    return "%s # %s" % (pre, param_values)
+    kwargs_fmtJsonstr = {}
+    for k, v in param_.kwargs.items():
+        v_new = v if not isinstance(v, (list,dict)) else json.dumps(v)
+        kwargs_fmtJsonstr[k] = v_new
+
+    param_values = param_.kwargs.get('__NAME__') or AXNone._fmt_args_kwargs(**kwargs_fmtJsonstr) #param_.kwargs.values()
+    ret = "%s # %s" % (pre, param_values)
+    return ret if '--collect-only' in sys.argv else html.escape(ret)
 
 
 def mbtPict(name, limit='', path=None, **kw): #nosetests

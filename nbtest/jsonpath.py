@@ -22,7 +22,7 @@ def jpFinds(jsDc, jsPath, onlyone=None, notNull=False, onlyoneAuto=True, dftRais
             if len(res) == 1:
                 return res[0]
             if dftRaise:
-                assert False, 'assert len(res)==1, but res={!r}'.format(res)
+                assert False, 'assert len(res)==1, but len={} #res={!r}'.format(len(res), res)
             else:
                 return dft
         return res

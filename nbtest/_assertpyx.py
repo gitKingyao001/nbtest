@@ -32,15 +32,14 @@ else:
     xrange = xrange
     unicode = unicode
 
-
 ### from nbtest_utils import Utils ###
 class _Utils(object):
     """
        some fn like nbtest_utils
     """
     @staticmethod
-    def stred_brief(val, max=200):
-        str_valLast = str_fmt(val)
+    def stred_brief(val, max=200, fmtFn=str_fmt):
+        str_valLast = fmtFn(val)
         if len(str_valLast) > max:
             if isinstance(val, dict):
                 val = 'dict<.keys()=[{}]>'.format(', '.join(val.keys()))
@@ -55,8 +54,28 @@ class _Utils(object):
     @staticmethod
     def err_detail(errObj):
         return '%s\n%s' % (errObj, traceback.format_exc())
+    @staticmethod
+    def obj_nameFmt(o):
+        return o.__name__ if hasattr(o, '__name__') else o
 
 
+
+def _sortKey_BASE(k1, k2):
+    if k1 < k2:
+        return -1
+    if k1 > k2:
+        return 1
+    return 0
+
+def _sortKey_testMethods(k1="", k2=""):
+    find1 = k1.lower().find('name')
+    find2 = k2.lower().find('name')
+    if find1 != -1 and find2 == -1:
+        return -1
+    elif find1 == -1 and find2 != -1:
+        return 1
+    else:
+        return _sortKey_BASE(k1=k1, k2=k2)
 
 class AXConfig(object):
     Warn = False
@@ -124,11 +143,11 @@ def AX(val, description='', debug=None, Utils=None, kw={}):
 
 class AXError(AssertionError):
     def __init__(self, msg):
-        AssertionError.__init__(self, encode_to(str_fmt(msg)))
+        AssertionError.__init__(self, msg)
 
 class AXOtherError(TypeError):
     def __init__(self, msg):
-        TypeError.__init__(self, encode_to(str_fmt(msg)))
+        TypeError.__init__(self, msg)
 
 class AXBuild(object):
     """Assertion builder."""
@@ -887,7 +906,9 @@ class AXBuild(object):
     def __getattr__(self, attr):
         """Asserts that val has attribute attr and that attribute's value is equal to other via a dynamic assertion of the form: has_<attr>()."""
         if not attr.startswith('has_'):
-            raise AXOtherError('assertpy has no assertion <%s()>' % attr)
+            raise AXOtherError(str_fmtB(
+                'assertpy has no assertion <{}()>', attr
+            ))
 
         attr_name = attr[4:]
         if not hasattr(self.val, attr_name):
@@ -895,7 +916,9 @@ class AXBuild(object):
                 if attr_name not in self.val:
                     raise KeyError('val has no key <%s>' % attr_name)
             else:
-                raise AXOtherError('val has no attribute <%s>' % attr_name)
+                raise AXOtherError(str_fmtB(
+                    'val has no attribute <{}>', attr_name
+                ))
 
         def _wrapper(*args, **kwargs):
             if len(args) != 1:
@@ -975,9 +998,9 @@ class AXBuild(object):
         if len(self._valPath) >= 2:
             valLast = _Utils.stred_brief(self._valPath[-2], max=500)
             msg += '\n  #_valPath[last]={!r}'.format(valLast)
-        out = '[{}]: {}'.format(self.description, msg)
+        out = str_fmtB('[{}]: {}', self.description, msg)
         if self.kind == 'warn':
-            print(out)
+            #print(out)
             return self
         elif self.kind == 'soft':
             global _soft_err
@@ -985,6 +1008,7 @@ class AXBuild(object):
             return self
         else:
             raise AXError(out)
+
 
     def _fmt_args_kwargs(self, *some_args, **some_kwargs):
         """Helper to convert the given args and kwargs into a string."""
@@ -996,9 +1020,9 @@ class AXBuild(object):
                 out_args += '{!r}, '.format(arg)
         if some_kwargs:
             out_kwargs = ''
-            for k in sorted(some_kwargs.keys()):
-                if len(out_kwargs.split('\n')[-1]) > 100:
-                    out_kwargs += '\n    '
+            for k in sorted(some_kwargs.keys(), cmp=_sortKey_testMethods):
+                # if len(out_kwargs.split('\n')[-1]) > 100:
+                #     out_kwargs += '\n    '
                 out_kwargs += '{}={}, '.format(k, some_kwargs[k])
 
         if some_args and some_kwargs:
@@ -1033,6 +1057,45 @@ class AXBuild(object):
     def isNotIn(self, expect):
         if not (self.val not in expect):
             self._err('Expected (%r not in %r), but was not.' % (self._ax_brief_val(self.val), self._ax_brief_val(expect)))
+        return self
+
+    def isFind(self, expect):
+        if not isinstance(self.val, basestring):
+            return self._err(str_fmtB(
+                'val is not isinstance of basestring, type(val)={}', type(self.val)
+            ))
+        if not isinstance(expect, basestring):
+            return self._err(str_fmtB(
+                'expect({}): not isinstance of basestring, type(expect)={}', self._ax_brief_val(expect), type(expect)
+            ))
+
+        findAt = self.val.find(expect)
+        if not (findAt != -1):
+            return self._err(str_fmtB(
+                'need can find expect({}) in val({}), but cannot',
+                self._ax_brief_val(expect),
+                self._ax_brief_val(self.val)
+            ))
+        return self
+
+    def isNotFind(self, expect):
+        if not isinstance(self.val, basestring):
+            return self._err(str_fmtB(
+                'val is not isinstance of basestring, type(val)={}', type(self.val)
+            ))
+        if not isinstance(expect, basestring):
+            return self._err(str_fmtB(
+                'expect({}): not isinstance of basestring, type(expect)={}', self._ax_brief_val(expect), type(expect)
+            ))
+
+        findAt = self.val.find(expect)
+        if not (findAt == -1):
+            return self._err(str_fmtB(
+                'need cannot find expect({}) in val({}), but can find at {}',
+                self._ax_brief_val(self.expect),
+                self._ax_brief_val(self.val),
+                findAt
+            ))
         return self
 
     def isSetEq(self, expe, **kwags):
@@ -1129,6 +1192,16 @@ class AXBuild(object):
     def isDictLe(self, expe):
         return self.isItemsEq(expe, T=self.val.keys(), notAll=True)
 
+    def isInstanceT(self, cls):
+        """ .doCalled(Utils.isinstanceT, cls).is_true() """
+        if cls in [str, unicode]:
+            cls = basestring  # 放宽py2的字符串类型检查
+        if hasattr(cls, '__IsinstanceT__'):
+            return self.doCalled(cls.__IsinstanceT__).is_true() #cls.__IsinstanceT__(self.val)
+        else:
+            return self.is_instance_of(cls) # isinstance(self.val, cls)
+
+
     def doAttrs(self, attrs):
         """ AX(obj).doAttrs(attrs) => AX({attr: obj.attr for attr in attrs}) """
         try:
@@ -1179,8 +1252,10 @@ class AXBuild(object):
 
     def doCalled(self, func, *args, **kw):
         """ try: ret = func(self.val, *args, **kw); return AX(ret) """
-        if not hasattr(func, '__call__'):
-            raise AXOtherError('func=%r must has "__call__"' % func)
+        if not callable(func):
+            raise AXOtherError(str_fmtB(
+                'func={} must be callable', func
+            ))
 
         __NotAutoArg__ = False
         if kw.get('__NotAutoArg__'):
@@ -1189,7 +1264,7 @@ class AXBuild(object):
             paramsFmt = self._fmt_args_kwargs(*args, **kw)
         else:
             paramsFmt = self._fmt_args_kwargs(self._ax_brief_val(self.val), *args, **kw)
-        descrNew = '%s: %s(%s)' % (self.description, func.__name__, paramsFmt)
+        descrNew = '%s: %s(%s)' % (self.description, _Utils.obj_nameFmt(func), paramsFmt)
 
         try:
             if __NotAutoArg__:
@@ -1216,12 +1291,15 @@ class AXBuild(object):
         method = method.__name__ if hasattr(method, '__name__') else method
         paramsFmt = self._fmt_args_kwargs(*args, **kw)
         if not hasattr(self.val, method):
-            raise AXOtherError('%s not hasattr %r' % (self._val_name, method))
+            raise AXOtherError(str_fmtB(
+                '{} not hasattr {}', self._val_name, method
+            ))
         methodObj = getattr(self.val, method)
-        if not hasattr(methodObj, '__call__'):
-            raise AXOtherError('%s.%s=%r not has "__call__"'
-                               % (self._val_name, method, methodObj))
-        descrNew = '%s.%s(%s)' % (self.description, methodObj, paramsFmt)
+        if not callable(methodObj):
+            raise AXOtherError(str_fmtB(
+                '{}.{}={!r} must be callabe', self._val_name, method, methodObj
+            ))
+        descrNew = '%s.%s(%s)' % (self.description, _Utils.obj_nameFmt(methodObj), paramsFmt)
         try:
             methodObj = getattr(self.val, method)
             ret = methodObj(*args, **kw)

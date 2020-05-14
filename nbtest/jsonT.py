@@ -8,17 +8,17 @@ from . import Utils
 
 
 import types, re, copy, numbers
-from DictObject import DictObject, DictObjectList
+# from DictObject import DictObject, DictObjectList
 
 
-_DictObject_getattr_bak = DictObject.__getattr__
-def _DictObject_getattr_new(self, item):
-    """ ### use like js<undefined>: o.undefined == JsonTUndef ### """
-    try:
-        return _DictObject_getattr_bak(self, item)
-    except AttributeError:
-        return JsonTUndefCls(item)
-DictObject.__getattr__ = _DictObject_getattr_new
+# _DictObject_getattr_bak = DictObject.__getattr__
+# def _DictObject_getattr_new(self, item):
+#     """ ### use like js<undefined>: o.undefined == JsonTUndef ### """
+#     try:
+#         return _DictObject_getattr_bak(self, item)
+#     except AttributeError:
+#         return JsonTUndefCls(item)
+# DictObject.__getattr__ = _DictObject_getattr_new
 ###
 
 _IsDebug = False
@@ -174,14 +174,15 @@ class _JsonTBase(object):
     def __Test__(self):
         raise TypeError('%s: have not rewrite %s.__Test__' % (self.__Name__, self.__class__.__name__))
 
-class JsonT(_JsonTBase, DictObject):
+
+class JsonT(_JsonTBase, dict): #(_JsonTBase, DictObject):
     def __init__(self, __Name__, __Json__=JsonTUndef, **kw):
         AX(__Name__, '__Name__').is_instance_of(basestring)
         __Json__ = __Json__ if __Json__ else kw
         AX(__Json__, __Name__).is_instance_of(dict)
-        DictObject.__init__(self, __Json__)
+        # DictObject.__init__(self, __Json__)
+        dict.__init__(self, __Json__)
         _JsonTBase.__init__(self, __Name__, __Json__)
-
 
 class JsonTExtendlimit(JsonT):
     __EXT__ = False
@@ -328,7 +329,7 @@ class JsonTVarMust(JsonTVar):
     Bool = TYPE and bool and Def(bool)
 
 
-class JsonTListable(DictObjectList):
+class JsonTListable(list): #(DictObjectList):
     __Listi__ = JsonTVar.Def(JsonT)
     def __init__(self, __Name__, __Json__):
         AX(__Json__, __Name__).is_instance_of(list)
@@ -342,7 +343,8 @@ class JsonTListable(DictObjectList):
             AX(clsKeyDef, iname).is_instance_of(JsonTVar.Def)
             newVal = clsKeyDef.chk_types(iname, v)
             newJson.append(Utils.jsonItem(newVal, iname))
-        DictObjectList.__init__(self, newJson)
+        #DictObjectList.__init__(self, newJson)
+        list.__init__(self, newJson)
 
 class JsonTVariableMust(object):
     """ class ExamA(JsonT):
@@ -364,100 +366,100 @@ class JsonTEnum(list):
 def jsonTNotoverwireErr():
     raise Exception('jsonTNotoverwireErr')
 
-def jsonTDictobjGet(dcOld, path):
-    """ fn({'a':{'aa', 10}}, 'a.aa') => 10 """
-    tmp = DictObject.objectify(dcOld)
-    pathNodes = path.split('.')
-    for i in range(len(pathNodes)):
-        pathNode = pathNodes[i]
-        if not isinstance(tmp, dict):
-            _debug('tmp-not-isa-dict')
-            return JsonTUndef
-        if not tmp.has_key(pathNode):
-            _debug('tmp-not-has_key-%s' % pathNode)
-            return JsonTUndef
-        tmp = tmp[pathNode]
-    return tmp
+# def jsonTDictobjGet(dcOld, path):
+#     """ fn({'a':{'aa', 10}}, 'a.aa') => 10 """
+#     tmp = DictObject.objectify(dcOld)
+#     pathNodes = path.split('.')
+#     for i in range(len(pathNodes)):
+#         pathNode = pathNodes[i]
+#         if not isinstance(tmp, dict):
+#             _debug('tmp-not-isa-dict')
+#             return JsonTUndef
+#         if not tmp.has_key(pathNode):
+#             _debug('tmp-not-has_key-%s' % pathNode)
+#             return JsonTUndef
+#         tmp = tmp[pathNode]
+#     return tmp
 
-def jsonTDictobj(dcOld, path=JsonTUndef, val=JsonTUndef):
-    """ dcOld = {"a":{"a1": 1}, "b": None}
-    AX(dcOld, 'dcOld-1').is
-    jsonTDictobj({"a":{"a1": 1}, "b": None}, {'aa.a2':22, 'a.a2.a3': 3, 'b.b1': 20})
-     == {"a", {"a1": 1, "a2": {"a3": 3}}, "aa": {"a2": 22}, "b": {"b1": 20}} 
-    """
-    obj = DictObject.objectify(dcOld)
-    if path==JsonTUndef or val==JsonTUndef:
-        return obj
+# def jsonTDictobj(dcOld, path=JsonTUndef, val=JsonTUndef):
+#     """ dcOld = {"a":{"a1": 1}, "b": None}
+#     AX(dcOld, 'dcOld-1').is
+#     jsonTDictobj({"a":{"a1": 1}, "b": None}, {'aa.a2':22, 'a.a2.a3': 3, 'b.b1': 20})
+#      == {"a", {"a1": 1, "a2": {"a3": 3}}, "aa": {"a2": 22}, "b": {"b1": 20}}
+#     """
+#     obj = DictObject.objectify(dcOld)
+#     if path==JsonTUndef or val==JsonTUndef:
+#         return obj
+#
+#     pathNodes = path.split('.')         # e.g. ['a', 'a2', 'a3']
+#     nodeIndexMax = len(pathNodes) - 1   # e.g. 2
+#     nodeTail = pathNodes[nodeIndexMax]  # eg. ['a3']
+#
+#     # use like HTTP.PATCH
+#     tmpObj = obj
+#     for nodeIndex in range(len(pathNodes)-1):    # e.g. nodeIndex = 1
+#         node = pathNodes[nodeIndex]
+#         tmpObj_get = tmpObj.get(node, JsonTUndef)  # e.g. tmpObj = obj['a'].get('a2')
+#         if not isinstance(tmpObj_get, dict):
+#             tmpObj[node] = {}
+#         tmpObj = tmpObj[node]
+#     tmpObj[nodeTail] = val
+#     return obj
+# _test_dcOld = {"a":{"a1": 11}, "b": None}
+# AX(_test_dcOld, '_test_dcOld-1').doCalled(jsonTDictobj, 'a.a1', {'aa1': 111}).isItemsEq(
+#     {"a": {"a1": {'aa1': 111}}, "b": None}
+# )
+# AX(_test_dcOld, '_test_dcOld-1').doCalled(jsonTDictobj, 'aa.a2', 12).isItemsEq(
+#     {"a": {"a1": 11}, "aa": {"a2": 12}, "b": None}
+# )
+# AX(_test_dcOld, '_test_dcOld-2').doCalled(jsonTDictobj, 'a.a2.aa3', 113).isItemsEq(
+#     {"a": {"a1": 11, "a2": {"aa3": 113}}, "b": None}
+# )
+# AX(_test_dcOld, '_test_dcOld-3').doCalled(jsonTDictobj, 'b.b1', 21).isItemsEq(
+#     {"a": {"a1": 11}, "b": {"b1": 21}}
+# )
+# AX(_test_dcOld, '_test_dcOld-4').doCalled(jsonTDictobj, 'a', {'a3': 13}).isItemsEq(
+#     {"a": {"a3": 13}, "b": None}
+# )
 
-    pathNodes = path.split('.')         # e.g. ['a', 'a2', 'a3']
-    nodeIndexMax = len(pathNodes) - 1   # e.g. 2
-    nodeTail = pathNodes[nodeIndexMax]  # eg. ['a3']
 
-    # use like HTTP.PATCH
-    tmpObj = obj
-    for nodeIndex in range(len(pathNodes)-1):    # e.g. nodeIndex = 1
-        node = pathNodes[nodeIndex]
-        tmpObj_get = tmpObj.get(node, JsonTUndef)  # e.g. tmpObj = obj['a'].get('a2')
-        if not isinstance(tmpObj_get, dict):
-            tmpObj[node] = {}
-        tmpObj = tmpObj[node]
-    tmpObj[nodeTail] = val
-    return obj
-_test_dcOld = {"a":{"a1": 11}, "b": None}
-AX(_test_dcOld, '_test_dcOld-1').doCalled(jsonTDictobj, 'a.a1', {'aa1': 111}).isItemsEq(
-    {"a": {"a1": {'aa1': 111}}, "b": None}
-)
-AX(_test_dcOld, '_test_dcOld-1').doCalled(jsonTDictobj, 'aa.a2', 12).isItemsEq(
-    {"a": {"a1": 11}, "aa": {"a2": 12}, "b": None}
-)
-AX(_test_dcOld, '_test_dcOld-2').doCalled(jsonTDictobj, 'a.a2.aa3', 113).isItemsEq(
-    {"a": {"a1": 11, "a2": {"aa3": 113}}, "b": None}
-)
-AX(_test_dcOld, '_test_dcOld-3').doCalled(jsonTDictobj, 'b.b1', 21).isItemsEq(
-    {"a": {"a1": 11}, "b": {"b1": 21}}
-)
-AX(_test_dcOld, '_test_dcOld-4').doCalled(jsonTDictobj, 'a', {'a3': 13}).isItemsEq(
-    {"a": {"a3": 13}, "b": None}
-)
-
-
-def jsonTDictobjPatch(oldDictobj, newDict, pathPre='', dcReplaces=[], lsPatchs=[], debug=False):
-    debug = _JsonTLib.Debug(debug)
-    oldDictobj = DictObject.objectify(oldDictobj)
-
-    for k, v in newDict.items():
-        pathFull = pathPre + k
-        if pathFull=='a.a1':
-            pass
-        if not isinstance(v, dict):
-            debug('%s=%r' % (pathFull, v))
-            if isinstance(v, list) and (pathFull in lsPatchs):
-                vOld = jsonTDictobjGet(oldDictobj, pathFull) or []
-                AX(vOld, "lsPatchs<{}>'s oldValue must list".format(pathFull)).is_instance_of(list)
-                vNew = list(vOld)
-                vNew.extend(v)
-                oldDictobj = jsonTDictobj(oldDictobj, pathFull, vNew)
-                # debug('%r.%s == %r' % (id(oldDictobj), pathFull, eval('oldDictobj.' + pathFull)))
-            else:
-                oldDictobj = jsonTDictobj(oldDictobj, pathFull, v)
-                # debug('%r.%s == %r' % (id(oldDictobj), pathFull, eval('oldDictobj.' + pathFull)))
-        else:
-            if pathFull in dcReplaces:  # use <replace> when top_level(pathPre=='')
-                debug('oldDictobj.__setitem__(%r, %r)' % (pathFull, v))
-                oldDictobj = jsonTDictobj(oldDictobj, pathFull, v)
-            else:
-                pathPreNew = pathFull + '.'
-                debug('jsonTDictobjPatch(oldDictobj, pathPre=%r, debug=%r, newDict=%r)' \
-                      % (pathPreNew, debug.debug, v))
-                oldDictobj = jsonTDictobjPatch(
-                    oldDictobj, newDict=v, pathPre=pathPreNew, dcReplaces=dcReplaces, lsPatchs=lsPatchs, debug=debug.debug
-                )
-    return oldDictobj
-_test_dcOld = DictObject({"a": {"a1": [11], "a2": {"a21": 121}}, "b": {"b1": 21}})
-AX(_test_dcOld, '_test_dcOld-1')\
-    .doCalled(jsonTDictobjPatch, {'a':{"a1": [11.2], 'a3':13, 'a2': {'a22': 122}}, 'b':{'b2':22}},
-              dcReplaces=['b'], lsPatchs=['a.a1'])\
-    .isItemsEq({"a": {"a1": [11, 11.2], "a2": {"a21": 121, "a22": 122}, "a3": 13}, "b": {"b2": 22}})
+# def jsonTDictobjPatch(oldDictobj, newDict, pathPre='', dcReplaces=[], lsPatchs=[], debug=False):
+#     debug = _JsonTLib.Debug(debug)
+#     oldDictobj = DictObject.objectify(oldDictobj)
+#
+#     for k, v in newDict.items():
+#         pathFull = pathPre + k
+#         if pathFull=='a.a1':
+#             pass
+#         if not isinstance(v, dict):
+#             debug('%s=%r' % (pathFull, v))
+#             if isinstance(v, list) and (pathFull in lsPatchs):
+#                 vOld = jsonTDictobjGet(oldDictobj, pathFull) or []
+#                 AX(vOld, "lsPatchs<{}>'s oldValue must list".format(pathFull)).is_instance_of(list)
+#                 vNew = list(vOld)
+#                 vNew.extend(v)
+#                 oldDictobj = jsonTDictobj(oldDictobj, pathFull, vNew)
+#                 # debug('%r.%s == %r' % (id(oldDictobj), pathFull, eval('oldDictobj.' + pathFull)))
+#             else:
+#                 oldDictobj = jsonTDictobj(oldDictobj, pathFull, v)
+#                 # debug('%r.%s == %r' % (id(oldDictobj), pathFull, eval('oldDictobj.' + pathFull)))
+#         else:
+#             if pathFull in dcReplaces:  # use <replace> when top_level(pathPre=='')
+#                 debug('oldDictobj.__setitem__(%r, %r)' % (pathFull, v))
+#                 oldDictobj = jsonTDictobj(oldDictobj, pathFull, v)
+#             else:
+#                 pathPreNew = pathFull + '.'
+#                 debug('jsonTDictobjPatch(oldDictobj, pathPre=%r, debug=%r, newDict=%r)' \
+#                       % (pathPreNew, debug.debug, v))
+#                 oldDictobj = jsonTDictobjPatch(
+#                     oldDictobj, newDict=v, pathPre=pathPreNew, dcReplaces=dcReplaces, lsPatchs=lsPatchs, debug=debug.debug
+#                 )
+#     return oldDictobj
+# _test_dcOld = DictObject({"a": {"a1": [11], "a2": {"a21": 121}}, "b": {"b1": 21}})
+# AX(_test_dcOld, '_test_dcOld-1')\
+#     .doCalled(jsonTDictobjPatch, {'a':{"a1": [11.2], 'a3':13, 'a2': {'a22': 122}}, 'b':{'b2':22}},
+#               dcReplaces=['b'], lsPatchs=['a.a1'])\
+#     .isItemsEq({"a": {"a1": [11, 11.2], "a2": {"a21": 121, "a22": 122}, "a3": 13}, "b": {"b2": 22}})
 
 
 if __name__ == '__main__':

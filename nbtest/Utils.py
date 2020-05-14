@@ -2,11 +2,13 @@
 from __future__ import unicode_literals, print_function, division, absolute_import
 from .future2to3 import *
 
-import types, numbers, inspect, traceback, time, chardet, re, os, json
+import types, numbers, inspect, traceback, time, hashlib, re, os, json
 import subprocess
 from datetime import datetime, timedelta
-from DictObject import DictObject
-
+from collections import OrderedDict
+from DictObject import DictObject, DictObjectList
+import logging
+import functools
 
 from .assertpyx import AX, _Utils
 
@@ -17,11 +19,21 @@ def SingletonCls(cls):
         str_fmt("assert <cls.__name__={!r}> not in <_SingletonCls_Stores.keys()>", cls.__name__)
     _SingletonCls_Stores[cls.__name__] = cls
     inst.__SingletonName__ = cls.__name__
-    inst.__call__ = lambda: inst
+    inst.__call__ = lambda: inst  # 直接赋值Cls.__call__()可以但Cls()会报错
     return inst
 
 def SingletonClsGet(clsName):
     return _SingletonCls_Stores[clsName]
+
+
+def Singleton(cls):
+    _instance = {}
+    @wraps.wraps(cls)
+    def _singleton(*args, **kargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args, **kargs)
+        return _instance[cls]
+    return _singleton
 
 class JsonLike(object):
     def toJson(self, __PathPre__='', **kwargs):
@@ -35,12 +47,12 @@ class JsonLike(object):
 
 def isJsonItem(o, raiseName=''):
     if isinstance(o, str):
-        o_codetype = encode_get(o)
+        o_codetype = encode_get(o, to_lower=True)
         if o_codetype not in ['utf-8', 'unicode', 'ascii']:
             raise Exception(str_fmtB(
                 "need encode_get(o={}) in ['utf-8', 'unicode', 'ascii'], but isa {}, o={!r}", raiseName, o_codetype, o
             ))
-    canJsonTypes = (types.NoneType, bool, numbers.Real, basestring, list, dict, JsonLike)
+    canJsonTypes = (types.NoneType, bool, numbers.Real, basestring, list, tuple, DictObjectList, dict, DictObject, JsonLike)
     chk = isinstance(o, canJsonTypes)
     if not chk and raiseName:
         raise Exception(str_fmtB(
@@ -221,9 +233,13 @@ def json_t2o(t, **kw):
     return json.loads(t, **kw)
 
 def json_o2t(o, ensure_ascii=False, indent=None, **kw):
-    return json.dumps(o, ensure_ascii=ensure_ascii, indent=indent, **kw)
-
-
+    if isinstance(o, (dict, DictObject)):
+        o_new = {k: v for k, v in o.items() if isJsonItem(v)}
+    elif isinstance(o, (list, tuple, DictObjectList)):
+        o_new = [i for i in o if isJsonItem(i)]
+    else:
+        o_new = o
+    return json.dumps(o_new, ensure_ascii=ensure_ascii, indent=indent, **kw)
 
 def stackUpFind__Symbol__():
     """  exam: stackUpFind(lambda i: i[0].f_locals.get('kw', {}).get('__Symbol__')) """
@@ -331,10 +347,33 @@ def dc_val2key(dc, val):
     else:
         return val
 
+def dc_assign(oldDict, *updDicts):
+    """ like JS  Object.assign(oldDict, updDict) """
+    newDict = dict(**oldDict)
+    for updDict in updDicts:
+        if not updDict:
+            continue
+        for k, v in updDict.items():
+            newDict[k] = v
+    return newDict
+
+def dc_olddictToNewvalues(olddict={}, orderedDict={}):
+    dc_keys = olddict.keys()
+    ret_values = []
+    for k, v_default in orderedDict.items():
+        v_new = olddict[k] if k in dc_keys else v_default
+        ret_values.append(v_new)
+
+    return ret_values
 
 
-def stred_brief(val, max=500):
-    return _Utils.stred_brief(val, max=max)
+def str_md5(s):
+    m = hashlib.md5()
+    m.update(str_fmtB(s))
+    return m.hexdigest()
+
+def stred_brief(val, max=500, fmtFn=str_fmt):
+    return _Utils.stred_brief(val, max=max, fmtFn=fmtFn)
 
 def log(msg, tm=None, **kw):
     tm = tm if tm else tm_nowStr('%Y%m%d-%H%M%S')
@@ -467,10 +506,13 @@ def fn_argspecStr(fn):
         defaults.reverse()
         len_defaults = len(defaults)
         for i in range(len_args):
+            i_showKey = args[i]
             if i < len_defaults:
-                shows_withDefaults.insert(0, '='.join([args[i], '{!r}'.format(encode_to(defaults[i]))]))
+                i_showDefault = str_fmt(defaults[i] if not isJsonItem(defaults[i]) else json_o2t(defaults[i]))
+                i_showStr = '='.join([i_showKey, i_showDefault])
+                shows_withDefaults.insert(0, i_showStr)
             else:
-                shows_withoutDefaults.insert(0, args[i])
+                shows_withoutDefaults.insert(0, i_showKey)
         if shows_withDefaults:
             shows_str = '\n    {}\n    {}'.format(
                 '\n    '.join(shows_withDefaults),
@@ -496,3 +538,51 @@ def file_readLines(filePath, mode='rU', encoding='utf-8', **kwargs):
     with open(filePath, mode=mode, encoding=encoding, **kwargs) as f:
         f_readLines = f.readlines()
     return f_readLines
+
+class MyLogger(object):
+    TRACE = logging.DEBUG - 1
+    """ 日志类: stdout+logFile 双写 """
+
+    def __init__(self, name='nbtest.Utils', console=True, file='',
+                 consoleLv=logging.INFO, fileLv=logging.DEBUG,
+                 fmt='%(asctime)s %(levelname)s [%(name)s] %(message)s'
+                 ):
+        # 创建一个logger
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(min(consoleLv, fileLv))
+        formatter = logging.Formatter(fmt)
+
+        if not (console or file):
+            assert False, 'MyLogger: need (console or file)'
+
+        # 创建一个handler，用于写入日志文件
+        if file and isinstance(file, six.string_types):
+            self.logger.FH = logging.FileHandler(file)
+            self.logger.FH.setLevel(fileLv)
+            self.logger.FH.setFormatter(formatter)
+            self.logger.addHandler(self.logger.FH)
+        if console:
+            self.logger.CH = logging.StreamHandler()
+            self.logger.CH.setLevel(consoleLv)
+            self.logger.CH.setFormatter(formatter)
+            self.logger.addHandler(self.logger.CH)
+
+    def _log(self, level, msg, *args, **kwargs):
+        msgFmt = str_fmtB(msg, *args, **kwargs)
+        self.logger._log(level, msgFmt, [])
+
+    def debug(self, msg, *args, **kwargs):
+        return self._log(logging.DEBUG, msg, *args, **kwargs)
+    def info(self, msg, *args, **kwargs):
+        return self._log(logging.INFO, msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        return self._log(logging.WARNING, msg, *args, **kwargs)
+    warn = warning
+    def error(self, msg, *args, **kwargs):
+        return self._log(logging.ERROR, msg, *args, **kwargs)
+    def critical(self, msg, *args, **kwargs):
+        return self._log(logging.CRITICAL, msg, *args, **kwargs)
+
+
+#end
