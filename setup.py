@@ -27,5 +27,5 @@ setup(
     download_url = 'https://github.com/jayvee-yjw/nbtest/archive/master.zip',
     keywords=["nbtest"],
     zip_safe=True,
-    install_requires=['assertpy', 'jsonpath_rw_ext', 'chardet', 'DictObject']
+    install_requires=['assertpy', 'jsonpath_rw_ext', 'chardet', 'DictObject', 'cchardet']
 )
